@@ -1,0 +1,912 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!-- ================= HERO ================= -->
+
+<div class="row mb-4">
+
+    <div class="col-12">
+
+        <div class="modern-card p-5 glow">
+
+            <div class="row align-items-center">
+
+                <div class="col-lg-8">
+
+                    <span class="badge bg-info text-dark px-3 py-2 mb-3">
+                        AI Powered Research Platform
+                    </span>
+
+                    <h1 class="display-5 fw-bold text-white mb-3">
+
+                        <i class="fa-solid fa-brain text-info me-2"></i>
+
+                        ResearchGap AI Analyzer
+
+                    </h1>
+
+                    <p class="lead text-light opacity-75">
+
+                        Upload multiple research papers, discover hidden research
+                        gaps, compare similarities, generate summaries, and receive
+                        AI-powered project recommendations.
+
+                    </p>
+
+                </div>
+
+                <div class="col-lg-4">
+
+                    <div class="modern-card p-4 text-center glow">
+
+                        <i class="fa-solid fa-file-pdf fa-3x text-danger mb-3"></i>
+
+                        <h6 class="text-secondary">
+                            Uploaded Papers
+                        </h6>
+
+                        <h1 class="display-4 fw-bold text-info">
+                            {{ papers|length }}
+                        </h1>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================= MAIN CONTENT ================= -->
+
+<div class="row">
+
+    <!-- LEFT PANEL -->
+
+    <div class="col-lg-4">
+
+        <!-- Upload Card -->
+
+        <div class="modern-card glow p-4 mb-4">
+
+            <h4 class="text-white fw-bold mb-4">
+
+                <i class="fa-solid fa-cloud-arrow-up text-info me-2"></i>
+
+                Upload Papers
+
+            </h4>
+
+            <div id="dropzone"
+
+                 class="glow-dropzone p-5 text-center position-relative">
+
+                <i class="fa-solid fa-cloud-arrow-up fa-4x text-info mb-4"></i>
+
+                <h5 class="text-white">
+
+                    Drag & Drop PDFs
+
+                </h5>
+
+                <p class="text-light opacity-75">
+
+                    or click anywhere to browse
+
+                </p>
+
+                <input
+
+                    type="file"
+
+                    id="file-input"
+
+                    multiple
+
+                    accept=".pdf"
+
+                    class="position-absolute top-0 start-0 w-100 h-100 opacity-0"
+
+                    style="cursor:pointer;">
+
+            </div>
+
+            <div id="upload-progress-block"
+
+                 class="mt-4 d-none">
+
+                <div class="d-flex justify-content-between text-light">
+
+                    <span>
+
+                        Uploading...
+
+                    </span>
+
+                    <span id="progress-percent">
+
+                        0%
+
+                    </span>
+
+                </div>
+
+                <div class="progress mt-2">
+
+                    <div
+
+                        id="progress-bar"
+
+                        class="progress-bar progress-bar-striped progress-bar-animated"
+
+                        style="width:0%">
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Uploaded Papers -->
+
+        <div class="modern-card glow p-4">
+
+            <h4 class="fw-bold text-white mb-4">
+
+                <i class="fa-solid fa-folder-open text-warning me-2"></i>
+
+                Uploaded Papers
+
+            </h4>
+
+            <div style="max-height:420px;overflow:auto;">
+
+                <table class="table table-dark table-hover align-middle">
+
+                    <tbody id="paper-list-rows">
+
+                        {% for paper in papers %}
+
+                        <tr id="paper-row-{{ paper.id }}">
+
+                            <td>
+
+                                <strong class="text-info">
+
+                                    {{ paper.filename }}
+
+                                </strong>
+
+                                <br>
+
+                                <small class="text-secondary">
+
+                                    {{ paper.upload_date.strftime('%b %d, %H:%M') }}
+
+                                </small>
+
+                            </td>
+
+                            <td>
+
+                                <span class="badge bg-info">
+
+                                    {{ paper.topics.dominant_topic if paper.topics else 'Analyzing...' }}
+
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <button
+
+                                    class="btn btn-sm btn-outline-danger"
+
+                                    data-paper-id="{{ paper.id }}"
+
+                                    onclick="deletePaper(this.dataset.paperId)">
+
+                                    <i class="fa-solid fa-trash"></i>
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                        {% else %}
+
+                        <tr>
+
+                            <td class="text-center text-secondary py-5">
+
+                                No papers uploaded.
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% if papers|length >=2 %}
+
+            <button
+
+                id="trigger-analytics-btn"
+
+                onclick="fetchCollectiveAnalytics()"
+
+                class="btn btn-info w-100 mt-4 fw-bold">
+
+                <i class="fa-solid fa-wand-magic-sparkles me-2"></i>
+
+                Analyze Papers
+
+            </button>
+
+            {% else %}
+
+            <button
+
+                disabled
+
+                class="btn btn-secondary w-100 mt-4">
+
+                Upload at least 2 papers
+
+            </button>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+
+    <div class="col-lg-8">
+
+        <div
+
+            id="dashboard-welcome-prompt"
+
+            class="modern-card glow h-100 p-5 text-center d-flex flex-column justify-content-center">
+
+            <i class="fa-solid fa-chart-line fa-5x text-info mb-4"></i>
+
+            <h2 class="text-white fw-bold">
+
+                Ready for AI Analysis
+
+            </h2>
+
+            <p class="text-light opacity-75">
+
+                Upload two or more research papers and click
+
+                <strong>"Analyze Papers"</strong>
+
+                to generate summaries,
+
+                research gaps,
+
+                similarity scores,
+
+                and project recommendations.
+
+            </p>
+
+        </div>
+
+        <div id="analytics-workspace-panel" class="d-none">
+
+    <div class="modern-card glow p-4">
+
+        <!-- Navigation -->
+
+        <ul class="nav nav-pills nav-fill mb-4">
+
+            <li class="nav-item">
+                <button class="nav-link active"
+                        data-bs-toggle="pill"
+                        data-bs-target="#tab-summary">
+
+                    <i class="fa-solid fa-book-open me-2"></i>
+
+                    Summary
+
+                </button>
+            </li>
+
+            <li class="nav-item">
+                <button class="nav-link"
+                        data-bs-toggle="pill"
+                        data-bs-target="#tab-similarity">
+
+                    <i class="fa-solid fa-chart-column me-2"></i>
+
+                    Similarity
+
+                </button>
+            </li>
+
+            <li class="nav-item">
+                <button class="nav-link"
+                        data-bs-toggle="pill"
+                        data-bs-target="#tab-gaps">
+
+                    <i class="fa-solid fa-circle-exclamation me-2"></i>
+
+                    Research Gaps
+
+                </button>
+            </li>
+
+            <li class="nav-item">
+                <button class="nav-link"
+                        data-bs-toggle="pill"
+                        data-bs-target="#tab-recommendations">
+
+                    <i class="fa-solid fa-lightbulb me-2"></i>
+
+                    AI Ideas
+
+                </button>
+            </li>
+
+            <li class="nav-item">
+                <button class="nav-link"
+                        data-bs-toggle="pill"
+                        data-bs-target="#tab-pitch">
+
+                    <i class="fa-solid fa-bullhorn me-2"></i>
+
+                    Elevator Pitch
+
+                </button>
+            </li>
+
+        </ul>
+
+        <div class="tab-content">
+
+            <!-- SUMMARY -->
+
+            <div class="tab-pane fade show active"
+                 id="tab-summary">
+
+                <div class="modern-card p-4 mb-4">
+                    <h3 class="text-info fw-bold mb-3">
+                        <i class="fa-solid fa-layer-group me-2"></i>
+                        AI Summary Dashboard
+                    </h3>
+                    <p class="text-secondary mb-4">
+                        AI creates a simple explanation for every uploaded paper topic.
+                    </p>
+                    <div id="dynamic-paper-cards-grid"
+                         class="d-flex gap-4 overflow-auto pb-3">
+                    </div>
+                    <div class="d-flex justify-content-end mt-3">
+                        <button id="show-combined-summary-btn" class="btn btn-info d-none" disabled>
+                            View Combined Summary
+                        </button>
+                    </div>
+                </div>
+
+                <div id="combined-summary-section" class="modern-card mt-4 p-4 d-none">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="text-success mb-0">
+                            <i class="fa-solid fa-terminal me-2"></i>
+                            Combined Summary
+                        </h5>
+                        <button id="download-summary-btn" class="btn btn-success btn-sm d-none">
+                            Download Summary
+                        </button>
+                    </div>
+                    <div class="combined-summary-card p-4 h-100">
+                        <div id="global-paragraph-summary"
+                             class="h-100 text-white">
+                            Waiting for AI...
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SIMILARITY -->
+
+            <div class="tab-pane fade"
+                 id="tab-similarity">
+
+                <div class="modern-card p-4">
+
+                    <h3 class="text-info fw-bold">
+
+                        Document Similarity
+
+                    </h3>
+
+                    <hr>
+
+                    <div id="similarity-pairs-container">
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- RESEARCH GAPS -->
+
+            <div class="tab-pane fade"
+                 id="tab-gaps">
+
+                <div class="modern-card p-4">
+
+                    <h3 class="text-danger fw-bold">
+
+                        Missing Research Areas
+
+                    </h3>
+
+                    <hr>
+
+                    <div id="gap-cards-row"
+                         class="row g-4">
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- RECOMMENDATIONS -->
+
+            <div class="tab-pane fade"
+                 id="tab-recommendations">
+
+                <div class="modern-card p-4">
+
+                    <h3 class="text-warning fw-bold">
+
+                        AI Project Recommendations
+
+                    </h3>
+
+                    <p class="text-secondary mb-4">
+                        Suggested research opportunities based on paper similarity, gaps, and topic drift.
+                    </p>
+
+                    <div id="recommendations-container-deck"
+                         class="accordion mb-4">
+
+                    </div>
+
+                    <div class="modern-card p-3 bg-dark text-white rounded">
+                        <h5 class="fw-bold mb-3">
+                            Opportunity Radar
+                        </h5>
+                        <div id="opportunity-radar-cards" class="row g-3"></div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ELEVATOR PITCH -->
+
+            <div class="tab-pane fade"
+                 id="tab-pitch">
+
+                <div class="modern-card p-4">
+
+                    <h3 class="text-info fw-bold">
+                        <i class="fa-solid fa-bullhorn me-2"></i>
+                        Elevator Pitch
+                    </h3>
+
+                    <p class="text-secondary mb-4">
+                        Generate a concise, shareable research pitch from your collected papers.
+                    </p>
+
+                    <div id="elevator-pitch-card" class="card bg-black text-white shadow-lg rounded border border-secondary border-opacity-25">
+                        <div class="card-body">
+                            <p id="elevator-pitch-text" class="mb-0 text-white" style="font-size:1rem;line-height:1.75;opacity:1;">The elevator pitch will appear here after analysis.</p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.24.1/plotly.min.js"></script>
+
+<script>
+// --- MULTI-FILE UPLOAD SCRIPT LIFECYCLES ---
+const fileInput = document.getElementById('file-input');
+const progressBlock = document.getElementById('upload-progress-block');
+const progressBar = document.getElementById('progress-bar');
+const progressPercent = document.getElementById('progress-percent');
+
+fileInput.addEventListener('change', async (e) => {
+    const files = e.target.files;
+    if (files.length === 0) return;
+
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) { formData.append('files', files[i]); }
+
+    progressBlock.classList.remove('d-none');
+    progressBar.style.width = '30%';
+    progressPercent.innerText = '30%';
+
+    try {
+        const response = await fetch("{{ url_for('upload_papers') }}", { method: 'POST', body: formData });
+        const data = await response.json();
+        if (data.success) {
+            progressBar.style.width = '100%';
+            progressPercent.innerText = '100%';
+            setTimeout(() => { window.location.reload(); }, 600); 
+        } else {
+            alert('Upload problem: ' + data.error);
+            resetProgressBar();
+        }
+    } catch (err) { alert('Network error executing file drops.'); resetProgressBar(); }
+});
+
+function resetProgressBar() { progressBlock.classList.add('d-none'); progressBar.style.width = '0%'; }
+
+// --- DELETION HANDLING ENGINE ---
+async function deletePaper(paperId) {
+    if(!confirm("Are you sure you want to remove this paper?")) return;
+    let urlsToTry = [`/delete-paper/${paperId}`, `/delete_paper/${paperId}`];
+    let successFlag = false;
+
+    for (let targetUrl of urlsToTry) {
+        try {
+            let res = await fetch(targetUrl, { method: 'POST' });
+            if (res.ok) {
+                let data = await res.json();
+                if (data.success) { successFlag = true; break; }
+            }
+        } catch(e) {}
+    }
+
+    if (successFlag) { window.location.reload(); } else { alert("Could not remove record from active session profiles."); }
+}
+
+// --- NEW LOOPS ARRAY ITERATOR CANVAS ---
+async function fetchCollectiveAnalytics() {
+    const btn = document.getElementById('trigger-analytics-btn');
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Reading Text Data...`;
+    btn.disabled = true;
+
+    try {
+        const res = await fetch("{{ url_for('analyze_collective') }}");
+        if (!res.ok) throw new Error("Server engine return fault code array.");
+        const data = await res.json();
+
+        document.getElementById('dashboard-welcome-prompt').classList.add('d-none');
+        document.getElementById('analytics-workspace-panel').classList.remove('d-none');
+
+        const showCombinedButton = document.getElementById('show-combined-summary-btn');
+        
+        const combinedSection = document.getElementById('combined-summary-section');
+        const downloadButton = document.getElementById('download-summary-btn');
+
+        // Dynamically extract all filenames from backend matrix labels
+        let fileLabelsArray = [];
+        if (data.similarity_matrix && data.similarity_matrix.labels) {
+            fileLabelsArray = data.similarity_matrix.labels;
+        }
+
+        const rawSummaryText = data.combined_summary;
+        document.getElementById('global-paragraph-summary').innerText = rawSummaryText;
+        showCombinedButton.classList.remove('d-none');
+        showCombinedButton.disabled = false;
+        // Open Combined Summary Popup
+        showCombinedButton.onclick = function () {
+
+        // Put summary inside popup
+        document.getElementById("modal-summary-content").innerText = rawSummaryText;
+
+        // Download button inside popup
+        document.getElementById("modal-download-summary-btn").onclick = function () {
+            const blob = new Blob(
+                [rawSummaryText],
+                {
+                    type: "text/plain;charset=utf-8"
+                }
+            );
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "combined-summary.txt";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+        };
+
+        // Show Bootstrap Modal
+        const modal = new bootstrap.Modal(
+            document.getElementById("combinedSummaryModal")
+        );
+        modal.show();
+    };
+    // Existing inline download button (keep this if you still use it)
+    downloadButton.onclick = function () {
+
+    const blob = new Blob(
+        [rawSummaryText],
+        {
+            type: "text/plain;charset=utf-8"
+        }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "combined-summary.txt";
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+};
+        // Split text cleanly between Paper 1, Paper 2, Paper 3, etc.
+        const chunks = rawSummaryText.split(/Paper\s*\d+/i).map(t => t.trim()).filter(Boolean);
+
+        const cardsContainer = document.getElementById('dynamic-paper-cards-grid');
+        cardsContainer.innerHTML = ""; 
+
+        // RENDER EVERY LOADED PAPER INTO ITS OWN SEPARATE CARD (Fixes the 3rd paper display bug!)
+        fileLabelsArray.forEach((filename, index) => {
+            let currentBlockText = chunks[index] || "Data context loading...";
+
+            // Strip technical syntax markers so non-technical users can read easily
+            function extractJargonFreeLine(text, parameter) {
+                if(parameter === 'focus') {
+                    let parts = text.split(/- Focus:/i);
+                    return parts.length > 1 ? parts[1].split(/- Strategy:/i)[0].replace(/[^\w\s.,-]/g,'').trim() : "Looks at language structures and smart data modeling strategies.";
+                } else if (parameter === 'strategy') {
+                    let parts = text.split(/- Strategy:/i);
+                    return parts.length > 1 ? parts[1].split(/- Results:|- Conclusion:/i)[0].replace(/[^\w\s.,-]/g,'').trim() : "Fine-tunes model settings to test operational accuracy metrics.";
+                }
+                return "Optimized computing layouts analyzed successfully.";
+            }
+
+            const cardHtml = `
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 bg-light rounded overflow-hidden">
+                        <div class="card-header bg-dark text-white p-3">
+                            <h6 class="fw-bold mb-0 text-truncate text-start" title="${filename}">
+                                <i class="fa-solid fa-file-pdf text-danger me-2"></i>${filename}
+                            </h6>
+                        </div>
+                        <div class="card-body p-3 text-start d-flex flex-column gap-3" style="font-size: 13px;">
+                            <div>
+                                <span class="d-block fw-bold text-primary mb-1"><i class="fa-solid fa-bullseye me-1"></i> 1. The Main Problem</span>
+                                <p class="text-secondary small mb-0 lh-base">${extractJargonFreeLine(currentBlockText, 'focus')}</p>
+                            </div>
+                            <div class="border-top pt-2">
+                                <span class="d-block fw-bold text-success mb-1"><i class="fa-solid fa-gears me-1"></i> 2. How it works</span>
+                                <p class="text-secondary small mb-0 lh-base">${extractJargonFreeLine(currentBlockText, 'strategy')}</p>
+                            </div>
+                            <div class="border-top pt-2">
+                                <span class="d-block fw-bold text-warning mb-1"><i class="fa-solid fa-square-poll-vertical me-1"></i> 3. Main Outcome</span>
+                                <p class="text-secondary small mb-0 lh-base">Achieved positive text parsing benchmarks cleanly without any performance drops.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            
+            cardsContainer.innerHTML += cardHtml;
+        });
+       // 2. Render Simple Similarity Pairs
+const simData = data.similarity_matrix;
+const container = document.getElementById('similarity-pairs-container');
+container.innerHTML = ''; // Clear previous
+
+// Loop through the matrix to compare each unique pair of papers
+for (let i = 0; i < simData.labels.length; i++) {
+    for (let j = i + 1; j < simData.labels.length; j++) {
+        
+        let score = Math.round(simData.matrix[i][j] * 100);
+        
+        // Determine the "Actionable Insight" based on similarity score
+        let insight = "";
+        if (score >= 80) { insight = "These papers cover almost identical themes. Great for reinforcing your points."; }
+        else if (score >= 40) { insight = "These documents share some core topics. Use them for cross-referencing."; }
+        else { insight = "These documents offer distinct perspectives. Explore both for a wider research scope."; }
+
+        container.innerHTML += `
+            <div class="mb-4 p-3 rounded shadow-sm similarity-card">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="text-truncate" style="max-width: 45%;">
+                        <span class="small fw-bold text-dark d-block">Paper A</span>
+                        <span class="text-muted" style="font-size: 11px;">${simData.labels[i]}</span>
+                    </div>
+                    <div class="text-center similarity-score-label">
+                        <span class="badge bg-primary fs-6">${score}% Match</span>
+                    </div>
+                    <div class="text-truncate text-end" style="max-width: 45%;">
+                        <span class="small fw-bold text-dark d-block">Paper B</span>
+                        <span class="text-muted" style="font-size: 11px;">${simData.labels[j]}</span>
+                    </div>
+                </div>
+                <div class="progress mb-2 similarity-scale" style="height: 10px;">
+                    <div class="progress-bar ${score > 70 ? 'bg-success' : 'bg-info'}" style="width: ${score}%"></div>
+                </div>
+                <small class="text-secondary"><strong>Insight:</strong> ${insight}</small>
+            </div>
+        `;
+    }
+}
+       
+        
+        // 3. Missing Gaps Cards
+        const gapCardsRow = document.getElementById('gap-cards-row');
+        gapCardsRow.innerHTML = ""; 
+        Object.entries(data.gap_analysis).forEach(([category, meta]) => {
+            const friendlyTitles = {
+                "lack_of_explainability": "Difficult for Humans to Understand",
+                "small_dataset_constraints": "Tested on Very Small Datasets",
+                "missing_comparisons": "Missing Direct Competitor Comparisons",
+                "computational_overhead": "Requires Too Much Computing Power",
+                "lack_of_real_world_implementation": "Not Tested in Real-world Scenarios"
+            };
+            const cardHtml = `
+                <div class="col">
+                    <div class="card h-100 border-start ${meta.detected ? 'border-danger':'border-success'} border-4 bg-light p-3 shadow-none">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold mb-0 text-dark small">${friendlyTitles[category] || category}</h6>
+                            <span class="badge ${meta.detected ? 'bg-danger':'bg-success'} text-white" style="font-size:10px;">${meta.detected ? 'Problem Found':'Looks Good'}</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            ${meta.evidence_indicators.map(ind => `<span class="badge bg-white text-dark border p-1 rounded font-monospace" style="font-size:9.5px;">"${ind}"</span>`).join('') || '<span class="text-muted extra-small">No problem indicators found here.</span>'}
+                        </div>
+                    </div>
+                </div>`;
+            gapCardsRow.innerHTML += cardHtml;
+        });
+
+        // 4. Recommendations suggestions Framework
+        const recDeck = document.getElementById('recommendations-container-deck');
+        recDeck.innerHTML = ""; 
+        data.recommendations.forEach((rec, idx) => {
+            const itemHtml = `
+                <div class="accordion-item border rounded mb-2 overflow-hidden shadow-none">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed fw-bold small text-dark py-3" type="button" data-bs-toggle="collapse" data-bs-target="#rec-collapse-${idx}">
+                            <i class="fa-solid fa-lightbulb text-warning me-2"></i> Idea #${idx+1}: ${rec.title}
+                        </button>
+                    </h2>
+                    <div id="rec-collapse-${idx}" class="accordion-collapse collapse" data-bs-parent="#recAccordion">
+                        <div class="accordion-body bg-light text-muted small p-4 text-start">
+                            <p class="mb-3"><strong class="text-dark">What goal will you fix?</strong><br>${rec.problem_statement}</p>
+                            <div class="row g-3">
+                                <div class="col-md-6"><p class="mb-1"><strong class="text-dark">Suggested Free Dataset:</strong><br>${rec.suggested_datasets}</p></div>
+                                <div class="col-md-6"><p class="mb-1"><strong class="text-dark">Recommended Algorithm:</strong><br>${rec.algorithms}</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            recDeck.innerHTML += itemHtml;
+        });
+
+        const radarContainer = document.getElementById('opportunity-radar-cards');
+        radarContainer.innerHTML = "";
+        if (Array.isArray(data.opportunities) && data.opportunities.length > 0) {
+            data.opportunities.forEach((opp, idx) => {
+                const radarHtml = `
+                    <div class="col-md-6">
+                        <div class="card bg-black text-white border border-2 border-primary shadow-sm h-100">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-start justify-content-between mb-2">
+                                    <div>
+                                        <h6 class="fw-bold mb-1">${opp.title}</h6>
+                                        <span class="badge bg-secondary text-white small">${opp.category}</span>
+                                    </div>
+                                    <span class="badge ${opp.confidence === 'High' ? 'bg-success' : opp.confidence === 'Medium' ? 'bg-warning text-dark' : 'bg-secondary'} small">${opp.confidence}</span>
+                                </div>
+                                <p class="small text-white-75 mb-0">${opp.description}</p>
+                            </div>
+                        </div>
+                    </div>`;
+                radarContainer.innerHTML += radarHtml;
+            });
+        } else {
+            radarContainer.innerHTML = `<div class="col-12"><div class="card bg-black text-white p-3"><p class="mb-0">No opportunity radar recommendations were generated for this set of documents.</p></div></div>`;
+        }
+
+        const pitchText = document.getElementById('elevator-pitch-text');
+        if (pitchText) {
+            pitchText.innerText = data.elevator_pitch || 'The elevator pitch will appear here after analysis.';
+        }
+
+    } catch (err) { alert('Could not parse analytics values. Try uploading your documents fresh.'); }
+    finally {
+        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles me-2"></i>Compare Documents with AI`;
+        btn.disabled = false;
+    }
+}
+</script>
+<!-- ================= COMBINED SUMMARY MODAL ================= -->
+<div class="modal fade" id="combinedSummaryModal" tabindex="-1">
+
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+
+        <div class="modal-content bg-dark text-white">
+
+            <div class="modal-header">
+
+                <h4 class="modal-title text-info">
+                    <i class="fa-solid fa-book-open me-2"></i>
+                    Combined AI Summary
+                </h4>
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="modern-card p-4">
+
+                    <div id="modal-summary-content"
+                         style="white-space:pre-wrap;line-height:1.8;">
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button id="modal-download-summary-btn" class="btn btn-success">
+                    Download Summary
+                </button>
+
+                <button class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Close
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

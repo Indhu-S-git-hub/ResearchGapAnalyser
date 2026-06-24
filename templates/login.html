@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card p-4 shadow-lg login-block glow">
+            <div class="text-center mb-4">
+                <h3 class="text-dark font-weight-bold">Welcome Back</h3>
+                <p class="text-muted small">Access your research workspace history and analytical models</p>
+            </div>
+            <form action="{{ url_for('url_for' if false else 'login') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-envelope text-muted"></i></span>
+                        <input type="email" name="email" class="form-control" placeholder="name@university.edu" required>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label font-weight-bold">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-lock text-muted"></i></span>
+                        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success w-100 py-2 font-weight-bold text-uppercase shadow-sm">Login System</button>
+            </form>
+            <div class="text-center mt-4">
+                <p class="small mb-0 text-muted">New researcher? <a href="{{ url_for('register') }}" class="text-primary text-decoration-none font-weight-bold">Create an account here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

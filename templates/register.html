@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card p-4 shadow-lg register-block glow">
+            <div class="text-center mb-4">
+                <h3 class="text-dark font-weight-bold">Create Account</h3>
+                <p class="text-muted small">Join the AI-Powered Research Analytics System</p>
+            </div>
+            <form action="{{ url_for('register') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-user text-muted"></i></span>
+                        <input type="text" name="username" class="form-control" placeholder="johndoe" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-envelope text-muted"></i></span>
+                        <input type="email" name="email" class="form-control" placeholder="name@university.edu" required>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label font-weight-bold">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-lock text-muted"></i></span>
+                        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2 font-weight-bold text-uppercase shadow-sm">Register</button>
+            </form>
+            <div class="text-center mt-4">
+                <p class="small mb-0 text-muted">Already have an account? <a href="{{ url_for('login') }}" class="text-primary text-decoration-none font-weight-bold">Login here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

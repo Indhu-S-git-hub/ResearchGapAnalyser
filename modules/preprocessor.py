@@ -3,29 +3,43 @@ import string
 
 class TextPreprocessor:
     def __init__(self):
-        # Load the lightweight spaCy model installed during environment setup
-        self.nlp = spacy.load("en_core_web_sm")
-        
+        # Load only the components needed for lemmatization
+        self.nlp = spacy.load(
+            "en_core_web_sm",
+            disable=["parser", "ner", "textcat"]
+        )
+
     def clean_text(self, text):
         """
-        Converts text to lowercase, handles lemmatization, and filters out 
-        punctuation, numbers, and standard English stop words.
+        Clean and lemmatize text while minimizing memory usage.
         """
+
         if not text or text == "Not Found":
             return ""
-            
-        # Optimize processing overhead by disabling unneeded components
-        doc = self.nlp(text.lower(), disable=["ner", "parser"])
-        
+
+        # Safety limit for Render free instance
+        text = text[:20000].lower()
+
         cleaned_tokens = []
-        for token in doc:
-            # Eliminate stop words, punctuations, white space tokens, and numerical values
-            if not token.is_stop and not token.is_punct and token.text.strip() and not token.like_num:
-                # Use base word form (lemmatization)
-                lemma = token.lemma_.strip()
-                # Secondary sanitization pass to remove weird stray symbols
-                lemma = lemma.translate(str.maketrans('', '', string.punctuation))
-                if len(lemma) > 2: # Ignore single/double character junk strings
+
+        # Process in small batches to reduce RAM usage
+        for doc in self.nlp.pipe([text], batch_size=1):
+
+            for token in doc:
+
+                if (
+                    token.is_stop
+                    or token.is_punct
+                    or token.like_num
+                    or token.is_space
+                ):
+                    continue
+
+                lemma = token.lemma_.translate(
+                    str.maketrans("", "", string.punctuation)
+                ).strip()
+
+                if len(lemma) > 2:
                     cleaned_tokens.append(lemma)
-                    
+
         return " ".join(cleaned_tokens)

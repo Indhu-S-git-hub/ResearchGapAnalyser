@@ -26,7 +26,7 @@ class KeywordExtractor:
             tfidf_keywords = {}
 
         # 2. Keyphrase structural strategy (pulling technical noun chunks from raw text)
-        doc = self.nlp(raw_text[:15000]) # Scan first 15k characters for core context
+        doc = self.nlp(raw_text[:5000]) # Scan first 15k characters for core context
         noun_chunks = []
         for chunk in doc.noun_chunks:
             clean_chunk = chunk.text.lower().strip()

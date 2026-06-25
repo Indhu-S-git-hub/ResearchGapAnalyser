@@ -49,7 +49,7 @@ def load_user(user_id):
 preprocessor = TextPreprocessor()
 summarizer = PaperSummarizer()
 keyword_extractor = KeywordExtractor()
-topic_modeler = TopicModeler(n_topics=3)
+topic_modeler = TopicModeler(n_topics=2)
 similarity_analyzer = SimilarityAnalyzer()
 gap_detector = ResearchGapDetector()
 recommender = ProjectRecommender()
@@ -168,19 +168,14 @@ def upload_papers():
                     meta = extractor.extract_metadata()
 
                     print("STEP 10 - Preprocessing", flush=True)
-                    cleaned = preprocessor.clean_text(meta["raw_text"])
+                    raw_text = meta["raw_text"][:20000]   # only first 20,000 characters
+                    cleaned = preprocessor.clean_text(raw_text)
 
                     print("STEP 11 - Summary", flush=True)
-                    summary = summarizer.generate_individual_summary(
-                        meta["raw_text"],
-                        meta
-                    )
+                    summary_data = summarizer.generate_individual_summary(raw_text, meta)
 
                     print("STEP 12 - Keywords", flush=True)
-                    keywords = keyword_extractor.extract_keywords(
-                        cleaned,
-                        meta["raw_text"]
-                    )
+                    keywords_data = keyword_extractor.extract_keywords(cleaned, raw_text)
 
                     print("STEP 13 - Save Details", flush=True)
 
@@ -198,7 +193,7 @@ def upload_papers():
 
                     summary_row = PaperSummary(
                         paper_id=paper_record.id,
-                        individual_summary=summary
+                        individual_summary=summary_data
                     )
 
                     keyword_row = PaperKeywords(

@@ -121,83 +121,176 @@ def dashboard():
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload_papers():
-    if 'files' not in request.files:
-        return jsonify({"error": "No file streams present inside request matrix."}), 400
-        
-    files = request.files.getlist('files')
-    uploaded_paper_ids = []
-    
-    for file in files:
-        if file.filename == '':
-            continue
-            
-        if file and file.filename.lower().endswith('.pdf'):
-            filename = secure_filename(file.filename)
-            saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(saved_path)
-            
-            paper_record = Paper(user_id=current_user.id, filename=filename)
-            db.session.add(paper_record)
+    print("STEP 1 - Upload request received", flush=True)
+
+    try:
+        if 'files' not in request.files:
+            print("STEP 2 - No files found", flush=True)
+            return jsonify({"error": "No files uploaded"}), 400
+
+        files = request.files.getlist('files')
+        print(f"STEP 3 - Number of files: {len(files)}", flush=True)
+
+        uploaded_paper_ids = []
+
+        for file in files:
+
+            print(f"STEP 4 - Processing {file.filename}", flush=True)
+
+            if file.filename == '':
+                continue
+
+            if file and file.filename.lower().endswith(".pdf"):
+
+                filename = secure_filename(file.filename)
+                saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+                print("STEP 5 - Saving PDF", flush=True)
+                file.save(saved_path)
+
+                print("STEP 6 - Creating Paper record", flush=True)
+                paper_record = Paper(
+                    user_id=current_user.id,
+                    filename=filename
+                )
+
+                db.session.add(paper_record)
+                db.session.commit()
+
+                print("STEP 7 - Database saved", flush=True)
+
+                try:
+
+                    print("STEP 8 - PDF Extraction", flush=True)
+                    extractor = PDFExtractor(saved_path)
+
+                    print("STEP 9 - Metadata", flush=True)
+                    meta = extractor.extract_metadata()
+
+                    print("STEP 10 - Preprocessing", flush=True)
+                    cleaned = preprocessor.clean_text(meta["raw_text"])
+
+                    print("STEP 11 - Summary", flush=True)
+                    summary = summarizer.generate_individual_summary(
+                        meta["raw_text"],
+                        meta
+                    )
+
+                    print("STEP 12 - Keywords", flush=True)
+                    keywords = keyword_extractor.extract_keywords(
+                        cleaned,
+                        meta["raw_text"]
+                    )
+
+                    print("STEP 13 - Save Details", flush=True)
+
+                    details = PaperDetails(
+                        paper_id=paper_record.id,
+                        title=meta["title"],
+                        authors=meta["authors"],
+                        abstract=meta["abstract"],
+                        publication_year=meta["publication_year"],
+                        conclusion=meta["conclusion"],
+                        references=meta["references"],
+                        total_pages=meta["total_pages"],
+                        raw_text=cleaned
+                    )
+
+                    summary_row = PaperSummary(
+                        paper_id=paper_record.id,
+                        individual_summary=summary
+                    )
+
+                    keyword_row = PaperKeywords(
+                        paper_id=paper_record.id,
+                        keywords_list=keywords
+                    )
+
+                    db.session.add(details)
+                    db.session.add(summary_row)
+                    db.session.add(keyword_row)
+
+                    db.session.commit()
+
+                    print("STEP 14 - Saved Successfully", flush=True)
+
+                    uploaded_paper_ids.append(paper_record.id)
+
+                except Exception as e:
+
+                    print("UPLOAD PIPELINE ERROR", flush=True)
+                    print(str(e), flush=True)
+
+                    db.session.rollback()
+
+                    return jsonify({
+                        "error": str(e)
+                    }), 500
+
+                finally:
+
+                    if os.path.exists(saved_path):
+                        os.remove(saved_path)
+
+        print("STEP 15 - Topic Modeling", flush=True)
+
+        all_user_papers = Paper.query.filter_by(
+            user_id=current_user.id
+        ).all()
+
+        if len(all_user_papers) > 0:
+
+            corpus = [
+                p.details.raw_text
+                for p in all_user_papers
+                if p.details
+            ]
+
+            for p in all_user_papers:
+                if p.topics:
+                    db.session.delete(p.topics)
+
             db.session.commit()
-            
-            try:
-                extractor = PDFExtractor(saved_path)
-                meta = extractor.extract_metadata()
-                cleaned = preprocessor.clean_text(meta['raw_text'])
-                summary_data = summarizer.generate_individual_summary(meta['raw_text'], meta)
-                keywords_data = keyword_extractor.extract_keywords(cleaned, meta['raw_text'])
-                
-                details_record = PaperDetails(
-                    paper_id=paper_record.id,
-                    title=meta['title'],
-                    authors=meta['authors'],
-                    abstract=meta['abstract'],
-                    publication_year=meta['publication_year'],
-                    conclusion=meta['conclusion'],
-                    references=meta['references'],
-                    total_pages=meta['total_pages'],
-                    raw_text=cleaned
+
+            assignments = topic_modeler.fit_predict_topics(corpus)
+
+            target_papers = [
+                p for p in all_user_papers
+                if p.details
+            ]
+
+            for i, assignment in enumerate(assignments):
+
+                if i >= len(target_papers):
+                    break
+
+                topic = PaperTopics(
+                    paper_id=target_papers[i].id,
+                    dominant_topic=assignment["dominant_topic"],
+                    topic_distribution=assignment["distribution"]
                 )
-                
-                summary_record = PaperSummary(paper_id=paper_record.id, individual_summary=summary_data)
-                keywords_record = PaperKeywords(paper_id=paper_record.id, keywords_list=keywords_data)
-                
-                db.session.add_all([details_record, summary_record, keywords_record])
-                db.session.commit()
-                uploaded_paper_ids.append(paper_record.id)
-                
-            except Exception as pipeline_crash:
-                db.session.delete(paper_record)
-                db.session.commit()
-                print(f"Pipeline failure on file {filename}: {str(pipeline_crash)}")
-                return jsonify({"error": f"Failed running pipeline processing on {filename}."}), 500
-            finally:
-                if os.path.exists(saved_path):
-                    os.remove(saved_path)
 
-    all_user_papers = Paper.query.filter_by(user_id=current_user.id).all()
-    if len(all_user_papers) > 0:
-        corpus = [p.details.raw_text for p in all_user_papers if p.details]
-        for p in all_user_papers:
-            if p.topics:
-                db.session.delete(p.topics)
-        db.session.commit()
-        
-        topic_assignments = topic_modeler.fit_predict_topics(corpus)
-        for idx, assignment in enumerate(topic_assignments):
-            target_papers = [p for p in all_user_papers if p.details]
-            if idx < len(target_papers):
-                target_paper = target_papers[idx]
-                topic_rec = PaperTopics(
-                    paper_id=target_paper.id,
-                    dominant_topic=assignment['dominant_topic'],
-                    topic_distribution=assignment['distribution']
-                )
-                db.session.add(topic_rec)
-        db.session.commit()
+                db.session.add(topic)
 
-    return jsonify({"success": True, "processed_count": len(uploaded_paper_ids)})
+            db.session.commit()
 
+        print("STEP 16 - Upload Finished", flush=True)
+
+        return jsonify({
+            "success": True,
+            "processed_count": len(uploaded_paper_ids)
+        })
+
+    except Exception as e:
+
+        print("FATAL ERROR", flush=True)
+        print(str(e), flush=True)
+
+        db.session.rollback()
+
+        return jsonify({
+            "error": str(e)
+        }), 500
 @app.route('/analyze-collective')
 @login_required
 def analyze_collective():

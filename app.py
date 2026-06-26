@@ -167,15 +167,15 @@ def upload_papers():
                     print("STEP 9 - Metadata", flush=True)
                     meta = extractor.extract_metadata()
 
-                    # print("STEP 10 - Preprocessing", flush=True)
-                    #raw_text = meta["raw_text"][:20000]   # only first 20,000 characters
-                    #cleaned = preprocessor.clean_text(raw_text)
+                    print("STEP 10 - Preprocessing", flush=True)
+                    raw_text = meta["raw_text"][:20000]   # only first 20,000 characters
+                    cleaned = preprocessor.clean_text(raw_text)
 
-                    #print("STEP 11 - Summary", flush=True)
-                    #summary_data = summarizer.generate_individual_summary(raw_text, meta)
+                    print("STEP 11 - Summary", flush=True)
+                    summary_data = summarizer.generate_individual_summary(raw_text, meta)
 
-                    #print("STEP 12 - Keywords", flush=True)
-                    #keywords_data = keyword_extractor.extract_keywords(cleaned, raw_text)
+                    print("STEP 12 - Keywords", flush=True)
+                    keywords_data = keyword_extractor.extract_keywords(cleaned, raw_text)
                     raw_text = meta["raw_text"][:20000]
                     cleaned = raw_text
                     summary_data = "{}"

@@ -197,8 +197,8 @@ def upload_papers():
                     )
 
                     keyword_row = PaperKeywords(
-                        paper_id=paper_record.id,
-                        keywords_list=keywords
+                    paper_id=paper_record.id,
+                        keywords_list=keywords_data
                     )
 
                     db.session.add(details)

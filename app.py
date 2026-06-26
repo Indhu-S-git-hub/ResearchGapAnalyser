@@ -176,10 +176,7 @@ def upload_papers():
 
                     print("STEP 12 - Keywords", flush=True)
                     keywords_data = keyword_extractor.extract_keywords(cleaned, raw_text)
-                    raw_text = meta["raw_text"][:20000]
-                    cleaned = raw_text
-                    summary_data = "{}"
-                    keywords_data = "[]"
+                    
                     print("STEP 13 - Save Details", flush=True)
 
                     details = PaperDetails(
